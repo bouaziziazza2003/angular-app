@@ -30,3 +30,4 @@ export class AppComponent {
 // test new job
 // ngrok restart test
 // gitlab plugin test
+// gitlab trigger test
