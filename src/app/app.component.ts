@@ -29,3 +29,4 @@ export class AppComponent {
 // gitlab test
 // test new job
 // ngrok restart test
+// gitlab plugin test
