@@ -3,24 +3,7 @@ pipeline {
     stages {
         stage('Clone Stage') {
             steps {
-                echo "Code cloné depuis GitHub!"
-            }
-        }
-        stage('Prepare Dockerfile') {
-            steps {
-                sh '''cat > Dockerfile << 'EOF'
-### STAGE 1: Build ###
-FROM node:12.7-alpine AS build
-WORKDIR /usr/src/app
-COPY package.json package-lock.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-### STAGE 2: Run ###
-FROM nginx:1.17.1-alpine
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY --from=build /usr/src/app/dist/aston-villa-app /usr/share/nginx/html
-EOF'''
+                echo "Code clone depuis GitLab!"
             }
         }
         stage('Get Version') {
@@ -40,8 +23,16 @@ EOF'''
             steps {
                 withCredentials([string(credentialsId: 'mydockerhubpassword', variable: 'DockerHubPassword')]) {
                     sh "docker login -u azza9292 -p ${DockerHubPassword}"
+                    sh "docker push azza9292/angular-app:${DOCKER_TAG}"
                 }
-                sh "docker push azza9292/angular-app:${DOCKER_TAG}"
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sh "docker stop angular-container 2>/dev/null || true"
+                sh "docker rm angular-container 2>/dev/null || true"
+                sh "docker run -d --name angular-container -p 8085:80 azza9292/angular-app:${DOCKER_TAG}"
+                echo "Deploye sur http://localhost:8085"
             }
         }
     }
