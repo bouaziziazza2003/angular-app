@@ -1,38 +1,42 @@
 pipeline {
     agent any
+
     stages {
-        stage('Clone Stage') {
+
+        stage('Clone') {
             steps {
-                echo "Code clone depuis GitLab!"
+                git branch: 'master',
+                url: 'https://gitlab.com/bouaziziazza45/datacamp_docker_angular.git'
             }
         }
-        stage('Get Version') {
+
+        stage('Install Dependencies') {
             steps {
-                script {
-                    DOCKER_TAG = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
-                    echo "Docker tag: ${DOCKER_TAG}"
-                }
+                sh 'npm install --legacy-peer-deps'
             }
         }
+
+        stage('Build Angular') {
+            steps {
+                sh 'npm run build'
+            }
+        }
+
         stage('Docker Build') {
             steps {
-                sh "docker build -t azza9292/angular-app:${DOCKER_TAG} ."
+                sh 'docker build -t angular-app .'
             }
         }
-        stage('DockerHub Push') {
+
+        stage('Deploy sur VM') {
             steps {
-                withCredentials([string(credentialsId: 'mydockerhubpassword', variable: 'DockerHubPassword')]) {
-                    sh "docker login -u azza9292 -p ${DockerHubPassword}"
-                    sh "docker push azza9292/angular-app:${DOCKER_TAG}"
-                }
-            }
-        }
-        stage('Deploy') {
-            steps {
-                sh "docker stop angular-container 2>/dev/null || true"
-                sh "docker rm angular-container 2>/dev/null || true"
-                sh "docker run -d --name angular-container -p 8085:80 azza9292/angular-app:${DOCKER_TAG}"
-                echo "Deploye sur http://localhost:8085"
+                sh '''
+                ssh vboxuser@192.168.56.102 "
+                docker stop angular-container || true &&
+                docker rm angular-container || true &&
+                docker run -d --name angular-container -p 8085:80 angular-app
+                "
+                '''
             }
         }
     }
